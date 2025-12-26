@@ -12,7 +12,6 @@ pipeline {
             }
             steps {
                 sh '''
-                  ls -la
                   node --version
                   npm --version
                   npm ci
@@ -46,8 +45,8 @@ pipeline {
             }
             steps {
                 sh '''
-                  npm install -g serve
-                  node_modules/.bin/serve -s build &
+                  npm ci
+                  npx serve -s build &
                   sleep 10
                   npx playwright test
                 '''
@@ -57,7 +56,7 @@ pipeline {
 
     post {
         always {
-            junit 'jest-results/junit.xml'
+            junit 'test-results/junit.xml'
         }
     }
 }
