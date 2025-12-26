@@ -12,19 +12,17 @@ pipeline {
             }
             steps {
                 sh '''
-                  echo "Installing dependencies"
-                  npm ci
-
-                  echo "Building React app"
-                  npm run build
-
-                  echo "Validating build"
-                  test -f build/index.html
+                    ls -la
+                    node --version
+                    npm --version
+                    npm ci
+                    npm run build
+                    ls -la
                 '''
             }
         }
 
-        stage('Unit Tests') {
+        stage('Test') {
             agent {
                 docker {
                     image 'node:18-alpine'
@@ -33,31 +31,25 @@ pipeline {
             }
             steps {
                 sh '''
-                  echo "Running Jest tests"
-                  npm test -- --watch=false
+                    # test -f build/index.html
+                    npm test
                 '''
             }
         }
 
-        stage('E2E Tests') {
+        stage('E2E') {
             agent {
                 docker {
-                    // This image ALREADY has browsers + deps
-                    image 'mcr.microsoft.com/playwright:v1.57.0-noble'
+                    image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
                     reuseNode true
                 }
             }
             steps {
                 sh '''
-                  echo "Installing app dependencies"
-                  npm ci
-
-                  echo "Starting React build"
-                  npx serve -s build &
-                  sleep 10
-
-                  echo "Running Playwright E2E tests"
-                  npx playwright test --reporter=junit
+                    npm install serve
+                    node_modules/.bin/serve -s build &
+                    sleep 10
+                    npx playwright test
                 '''
             }
         }
@@ -65,8 +57,7 @@ pipeline {
 
     post {
         always {
-            echo "Publishing JUnit report"
-            junit 'test-results/junit.xml'
+            junit 'jest-results/junit.xml'
         }
     }
 }
