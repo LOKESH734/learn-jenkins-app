@@ -18,7 +18,7 @@ pipeline {
                   echo "Building React app"
                   npm run build
 
-                  echo "Checking build output"
+                  echo "Validating build"
                   test -f build/index.html
                 '''
             }
@@ -33,7 +33,7 @@ pipeline {
             }
             steps {
                 sh '''
-                  echo "Running Jest unit tests"
+                  echo "Running Jest tests"
                   npm test -- --watch=false
                 '''
             }
@@ -42,19 +42,17 @@ pipeline {
         stage('E2E Tests') {
             agent {
                 docker {
-                    image 'mcr.microsoft.com/playwright:noble'
+                    // This image ALREADY has browsers + deps
+                    image 'mcr.microsoft.com/playwright:v1.57.0-noble'
                     reuseNode true
                 }
             }
             steps {
                 sh '''
-                  echo "Installing dependencies"
+                  echo "Installing app dependencies"
                   npm ci
 
-                  echo "Installing Playwright browsers"
-                  npx playwright install --with-deps
-
-                  echo "Starting React app"
+                  echo "Starting React build"
                   npx serve -s build &
                   sleep 10
 
@@ -67,7 +65,7 @@ pipeline {
 
     post {
         always {
-            echo "Publishing test reports"
+            echo "Publishing JUnit report"
             junit 'test-results/junit.xml'
         }
     }
