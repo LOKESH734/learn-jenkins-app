@@ -31,8 +31,7 @@ pipeline {
             }
             steps {
                 sh '''
-                    # test -f build/index.html
-                    npm test
+                    npm test -- --watch=false
                 '''
             }
         }
@@ -46,15 +45,15 @@ pipeline {
             }
             steps {
                 sh '''
-                    npm install serve
-                    node_modules/.bin/serve -s build &
+                    npm ci
+                    npx serve -s build &
                     sleep 10
                     npx playwright test
                 '''
             }
         }
-    }
-    stage('Deploy') {
+
+        stage('Deploy') {
             agent {
                 docker {
                     image 'node:18-alpine'
@@ -63,11 +62,12 @@ pipeline {
             }
             steps {
                 sh '''
-                    npm install -g netlify-cli -g
+                    npm install -g netlify-cli
                     netlify --version
                 '''
             }
         }
+    }
 
     post {
         always {
