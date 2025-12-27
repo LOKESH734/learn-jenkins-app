@@ -70,7 +70,7 @@ pipeline {
                     npm install netlify-cli
                     node_modules/.bin/netlify --version
                     echo "Deploying to production site id"
-                    ode_modules/.bin/netlify --status
+                    node_modules/.bin/netlify --status
                 '''
             }
         }
