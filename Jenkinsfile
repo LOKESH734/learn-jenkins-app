@@ -18,12 +18,8 @@ pipeline {
             steps {
                 sh '''
                     echo 'small change'
-                    ls -la
-                    node --version
-                    npm --version
                     npm ci
                     npm run build
-                    ls -la
                 '''
             }
         }
@@ -58,6 +54,7 @@ pipeline {
                 '''
             }
         }
+
         stage('Deploy Staging') {
             agent {
                 docker {
@@ -68,10 +65,7 @@ pipeline {
             steps {
                 sh '''
                     npm install netlify-cli
-                    node_modules/.bin/netlify --version
-                    echo "Deploying to Staging site id"
-                    node_modules/.bin/netlify status
-                    node_modules/.bin/netlify deploy --dir=build 
+                    node_modules/.bin/netlify deploy --dir=build --no-build
                 '''
             }
         }
@@ -86,9 +80,6 @@ pipeline {
             steps {
                 sh '''
                     npm install netlify-cli
-                    node_modules/.bin/netlify --version
-                    echo "Deploying to production site id"
-                    node_modules/.bin/netlify status
                     node_modules/.bin/netlify deploy --dir=build --prod --no-build
                 '''
             }
@@ -106,6 +97,7 @@ pipeline {
             }
             steps {
                 sh '''
+                    npx playwright install
                     npx playwright test
                 '''
             }
