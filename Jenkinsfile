@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        NETLIFY_SITE_ID = '6d82f876-e105-4cc5-a241-96a4d4d1bd4f'
-        NETLIFY_AUTH_TOKEN = credentials('TOKEN')
+        NETLIFY_SITE_ID  = '6d82f876-e105-4cc5-a241-96a4d4d1bd4f'
+        NETLIFY_AUTH_TOKEN = credentials('TOKEN')   // <-- ONLY THIS MUST EXIST IN JENKINS
     }
 
     stages {
@@ -17,19 +17,73 @@ pipeline {
             }
             steps {
                 sh '''
-                    echo "Installing dependencies"
-                    npm ci
-
-                    echo "Building React app"
-                    npm run build
-
-                    echo "Verifying build output"
-                    test -f build/index.html
+                  ls -la
+                  node --version
+                  npm --version
+                  npm ci
+                  npm run build
+                  ls -la
                 '''
             }
         }
 
-        stage('Unit Tests') {
+        stage('Tests') {
+            parallel {
+
+                stage('Unit Tests') {
+                    agent {
+                        docker {
+                            image 'node:18-alpine'
+                            reuseNode true
+                        }
+                    }
+                    steps {
+                        sh '''
+                          npm test
+                        '''
+                    }
+                    post {
+                        always {
+                            junit 'jest-results/junit.xml'
+                        }
+                    }
+                }
+
+                stage('E2E') {
+                    agent {
+                        docker {
+                            image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+                            reuseNode true
+                        }
+                    }
+                    steps {
+                        sh '''
+                          npm install serve
+                          node_modules/.bin/serve -s build &
+                          sleep 10
+                          npx playwright test --reporter=html
+                        '''
+                    }
+                    post {
+                        always {
+                            publishHTML(
+                                allowMissing: false,
+                                alwaysLinkToLastBuild: false,
+                                keepAll: false,
+                                reportDir: 'playwright-report',
+                                reportFiles: 'index.html',
+                                reportName: 'Playwright HTML Report',
+                                reportTitles: '',
+                                useWrapperFileDirectly: true
+                            )
+                        }
+                    }
+                }
+
+            }
+        }
+
+        stage('Deploy') {
             agent {
                 docker {
                     image 'node:18-alpine'
@@ -38,39 +92,14 @@ pipeline {
             }
             steps {
                 sh '''
-                    echo "Running unit tests"
-                    npm test -- --watch=false || true
+                  npm install netlify-cli
+                  node_modules/.bin/netlify --version
+                  echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
+                  node_modules/.bin/netlify status
+                  node_modules/.bin/netlify deploy --dir=build --prod
                 '''
             }
         }
 
-        stage('Deploy to Netlify (TEST)') {
-            agent {
-                docker {
-                    image 'node:18-alpine'
-                    reuseNode true
-                }
-            }
-            steps {
-                sh '''
-                    echo "Installing Netlify CLI"
-                    npm install netlify-cli
-
-                    echo "Deploying build folder to Netlify (TEST / Preview)"
-                    node_modules/.bin/netlify deploy \
-                      --dir=build \
-                      --site=$NETLIFY_SITE_ID \
-                      --auth=$NETLIFY_AUTH_TOKEN
-                '''
-            }
-        }
-    }
-
-    post {
-        always {
-            node {
-                junit allowEmptyResults: true, testResults: 'jest-results/junit.xml'
-            }
-        }
     }
 }
