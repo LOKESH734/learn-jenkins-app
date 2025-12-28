@@ -4,6 +4,7 @@ pipeline {
     environment{
         NETLIFY_SITE_ID='6d82f876-e105-4cc5-a241-96a4d4d1bd4f'
         NETLIFY_AUTH_TOKEN=credentials('TOKEN')
+        
     }
      
     stages {
@@ -78,6 +79,24 @@ node_modules/.bin/netlify deploy --dir=build --prod --no-build
             }
         }
     }
+    stage('Prod E2E') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+                    reuseNode true
+                }
+            }
+             environment{
+        
+        CI_ENVIRONMENT_URL='https://calm-sunburst-dbd2f5.netlify.app'
+    }
+            steps {
+                sh '''
+                    
+                    npx playwright test
+                '''
+            }
+        }
 
     post {
         always {
