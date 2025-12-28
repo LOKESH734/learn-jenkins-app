@@ -1,12 +1,11 @@
 pipeline {
     agent any
 
-    environment{
-        NETLIFY_SITE_ID='6d82f876-e105-4cc5-a241-96a4d4d1bd4f'
-        NETLIFY_AUTH_TOKEN=credentials('TOKEN')
-        
+    environment {
+        NETLIFY_SITE_ID = '6d82f876-e105-4cc5-a241-96a4d4d1bd4f'
+        NETLIFY_AUTH_TOKEN = credentials('TOKEN')
     }
-     
+
     stages {
 
         stage('Build') {
@@ -18,7 +17,7 @@ pipeline {
             }
             steps {
                 sh '''
-                echo 'small change'
+                    echo 'small change'
                     ls -la
                     node --version
                     npm --version
@@ -70,33 +69,31 @@ pipeline {
             steps {
                 sh '''
                     npm install netlify-cli
-node_modules/.bin/netlify --version
-echo "Deploying to production site id"
-node_modules/.bin/netlify status
-node_modules/.bin/netlify deploy --dir=build --prod --no-build
-
+                    node_modules/.bin/netlify --version
+                    echo "Deploying to production site id"
+                    node_modules/.bin/netlify status
+                    node_modules/.bin/netlify deploy --dir=build --prod --no-build
                 '''
             }
         }
-    }
-    stage('Prod E2E') {
+
+        stage('Prod E2E') {
             agent {
                 docker {
                     image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
                     reuseNode true
                 }
             }
-             environment{
-        
-        CI_ENVIRONMENT_URL='https://calm-sunburst-dbd2f5.netlify.app'
-    }
+            environment {
+                CI_ENVIRONMENT_URL = 'https://calm-sunburst-dbd2f5.netlify.app'
+            }
             steps {
                 sh '''
-                    
                     npx playwright test
                 '''
             }
         }
+    }
 
     post {
         always {
